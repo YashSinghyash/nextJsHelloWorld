@@ -1,22 +1,44 @@
-import Link from "next/link"
-import Image from "next/image"
+"use client";
+
+import Link from "next/link";
+import Image from "next/image";
+import posthog from "posthog-js";
 
 const Navbar = () => {
+  const handleLogoClick = () => {
+    posthog.capture("logo_clicked", {
+      nav_location: "header",
+    });
+  };
+
+  const handleNavClick = (navItem: string) => {
+    posthog.capture(`${navItem}_nav_clicked`, {
+      nav_location: "header",
+      nav_item: navItem,
+    });
+  };
+
   return (
     <header>
-        <nav>
-            <Link href='/' className="logo">
-                <Image src="/icons/logo.png" alt="logo" width={24} height={24} />
-                <p> DevEvent</p>
-            </Link>
-            <ul>
-                <Link href="/">Home</Link>
-                <Link href="/">Event</Link>
-                <Link href="/">Create Event</Link>
-            </ul>
-        </nav>
+      <nav>
+        <Link href="/" className="logo" onClick={handleLogoClick}>
+          <Image src="/icons/logo.png" alt="logo" width={24} height={24} />
+          <p> DevEvent</p>
+        </Link>
+        <ul>
+          <Link href="/" onClick={() => handleNavClick("home")}>
+            Home
+          </Link>
+          <Link href="/" onClick={() => handleNavClick("events")}>
+            Event
+          </Link>
+          <Link href="/" onClick={() => handleNavClick("create_event")}>
+            Create Event
+          </Link>
+        </ul>
+      </nav>
     </header>
-  )
-}
+  );
+};
 
-export default Navbar
+export default Navbar;
