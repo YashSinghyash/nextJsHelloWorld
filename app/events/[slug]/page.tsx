@@ -4,6 +4,7 @@ import BookEvent from "@/app/components/BookEvent";
 import { getSimilarEventsBySlug } from "@/lib/actions/event.actions";
 import { IEvent } from "@/database";
 import EventCard from "@/app/components/EventCard";
+import { Suspense } from "react";
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
 
 const EventDetalItem = ({
@@ -50,22 +51,25 @@ const EventDetailsPage = async ({
   params: Promise<{ slug: string }>;
 }) => {
   const { slug } = await params;
-  const request = await fetch(`${BASE_URL}/api/events/${slug}`);
+  const request = await fetch(`${BASE_URL}/api/events/${slug}`, {
+    next: { revalidate: 3600 }, // Cache for 1 hour
+  });
+  const { event } = await request.json();
   const {
-    event: {
-      description,
-      image,
-      overview,
-      date,
-      time,
-      audience,
-      location,
-      mode,
-      agenda,
-      tags,
-      organizer,
-    },
-  } = await request.json();
+    _id,
+    description,
+    image,
+    overview,
+    date,
+    time,
+    audience,
+    location,
+    mode,
+    agenda,
+    tags,
+    organizer,
+    slug: eventSlug,
+  } = event;
 
   const similarEvents: IEvent[] = await getSimilarEventsBySlug(slug);
 
@@ -133,7 +137,7 @@ const EventDetailsPage = async ({
               <p className="text-sm">Be the first to book your spot!</p>
             )}
 
-            <BookEvent />
+            <BookEvent eventId={_id.toString()} slug={eventSlug} />
           </div>
         </aside>
       </div>
@@ -141,9 +145,24 @@ const EventDetailsPage = async ({
         <h2> Similar Events</h2>
         <div className="events">
           {similarEvents.length > 0 &&
-            similarEvents.map((similarEvent: IEvent) => (
-              <EventCard key={similarEvent._id.toString()} {...similarEvent} />
-            ))}
+            similarEvents.map((similarEvent: IEvent) => {
+              // Serialize the event data to plain objects
+              const plainEvent = {
+                ...similarEvent,
+                _id: similarEvent._id.toString(),
+                createdAt:
+                  typeof similarEvent.createdAt === "string"
+                    ? similarEvent.createdAt
+                    : similarEvent.createdAt.toISOString(),
+                updatedAt:
+                  typeof similarEvent.updatedAt === "string"
+                    ? similarEvent.updatedAt
+                    : similarEvent.updatedAt.toISOString(),
+              };
+              return (
+                <EventCard key={similarEvent._id.toString()} {...plainEvent} />
+              );
+            })}
         </div>
       </div>
     </section>
